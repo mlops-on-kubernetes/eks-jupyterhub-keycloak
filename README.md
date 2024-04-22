@@ -1,4 +1,4 @@
-# eks-jupyterhub-keycloak
+# Setting up of JupyterHub with KeyCloak Authentication on EKS
 
 ### Pre Req
 
