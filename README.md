@@ -13,14 +13,12 @@
 
 #### EKS Cluster with EBS
 ```bash
-eksctl create cluster -f eksctl.yaml
+eksctl create cluster -f ./eksctl.yaml
 ```
 
 #### Install AWS ALB LB Controller
 
 ```bash
-curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
-
 aws iam create-policy \
     --policy-name AWSLoadBalancerControllerIAMPolicy \
     --policy-document file://iam_policy.json
@@ -50,7 +48,7 @@ kubectl get deployment -n kube-system aws-load-balancer-controller
 ### Install KeyCloak
 
 ```
-kubectl apply -f keycloak.yaml
+kubectl apply -f ./keycloak.yaml
 ```
 
 #### Install JupyterHub
