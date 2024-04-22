@@ -2,9 +2,10 @@
 
 ### Pre Req
 
-- kubectl
-- eksctl
-- aws-cli
+- [AWS Command Line Interface (AWS CLI) version 2](https://aws.amazon.com/cloudwatch/) is a utility for controlling AWS resources
+- [eksctl](https://eksctl.io/) is a utility for managing Amazon EKS clusters
+- [kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html) is a utility for managing Kubernetes
+- [helm](https://www.eksworkshop.com/beginner/060_helm/helm_intro/install/index.html) is a tool for automating Kubernetes deployments
 
 
 ### Installation steps
