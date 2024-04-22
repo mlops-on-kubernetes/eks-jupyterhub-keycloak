@@ -1,0 +1,19 @@
+hub:
+    config:
+      GenericOAuthenticator:
+        client_id: jupyter
+        client_secret: 
+        oauth_callback_url: http://..../hub/oauth_callback
+        authorize_url: https://..../auth/realms/jupyter/protocol/openid-connect/auth
+        token_url: https://..../auth/realms/jupyter/protocol/openid-connect/token
+        userdata_url: https://..../auth/realms/jupyter/protocol/openid-connect/userinfo
+        logout_redirect_url: https://..../auth/realms/jupyter/protocol/openid-connect/logout?redirect_uri=http://..../hub/
+        login_service: keycloak
+        username_key: preferred_username
+        cookieSecret: 
+        userdata_params:
+          state: state
+      JupyterHub:
+        authenticator_class: generic-oauth
+proxy:
+  service: ClusterIP
