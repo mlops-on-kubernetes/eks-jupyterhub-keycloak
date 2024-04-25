@@ -2,25 +2,28 @@ apiVersion: v1
 kind: Service
 metadata:
   name: keycloak
+  namespace: keycloak
   labels:
     app: keycloak
 spec:
   ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
+    - name: https
+      port: 443
+      targetPort: 8443
   selector:
     app: keycloak
   type: ClusterIP
+  clusterIP: None
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
+  namespace: keycloak
   labels:
     app: keycloak
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: keycloak
@@ -31,19 +34,109 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:24.0.3
-          args: ["start-dev"]
+          image: quay.io/keycloak/keycloak:20.0.2
+          args: ["start", "--cache-stack=kubernetes"]
+          volumeMounts:
+          - name: certs
+            mountPath: "/etc/certs"
+            readOnly: true
           env:
             - name: KEYCLOAK_ADMIN
-              value: "admin"
+              value: "mladmin"
             - name: KEYCLOAK_ADMIN_PASSWORD
-              value: "admin"
+              value: "mladmin"
+            - name: KC_HTTPS_CERTIFICATE_FILE
+              value: "/etc/certs/tls.crt"
+            - name: KC_HTTPS_CERTIFICATE_KEY_FILE
+              value: "/etc/certs/tls.key"
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_METRICS_ENABLED
+              value: "true"
+            - name: KC_HOSTNAME
+              value: $KC_HOSTNAME
             - name: KC_PROXY
               value: "edge"
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: "jdbc:postgresql://keycloak-db-postgresql-ha-pgpool/postgres"
+            - name: KC_DB_USERNAME
+              value: "postgres"
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-postgresql-ha-postgresql
+                  key: password
+            - name: jgroups.dns.query
+              value: keycloak
           ports:
-            - name: http
-              containerPort: 8080
+            - name: jgroups
+              containerPort: 7600
+            - name: https
+              containerPort: 8443
           readinessProbe:
             httpGet:
-              path: /realms/master
-              port: 8080
+              scheme: HTTPS
+              path: /health/ready
+              port: 8443
+            initialDelaySeconds: 60
+            periodSeconds: 1
+      volumes:
+      - name: certs
+        secret:
+          secretName: auth-tls-secret
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-ingress
+  namespace: keycloak
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: ml-on-k8s
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXX:certificate/848e4f32-9b9d-4e49-ac33-4877338ee19d
+spec:
+  ingressClassName: alb
+  rules:
+    - host: keycloak2.elamaras.people.aws.dev
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-ingress-2
+  namespace: keycloak
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: ml-on-k8s
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXXX:certificate/848e4f32-9b9d-4e49-ac33-4877338ee19d
+spec:
+  ingressClassName: alb
+  rules:
+    - host: auth.elamaras.people.aws.dev
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 443
